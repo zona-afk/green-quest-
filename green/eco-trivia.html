@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eco Trivia Challenge - GreenQuest</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-green-50">
+  <!-- Navigation -->
+  <nav class="bg-green-600 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Eco Trivia Challenge</h1>
+      <a href="index (2).html" class="hover:underline">← Back to GreenQuest</a>
+    </div>
+  </nav>
+
+  <!-- Game Container -->
+  <div class="container mx-auto p-6">
+    <div class="bg-white rounded-lg shadow-lg max-w-2xl mx-auto p-8">
+      <h2 class="text-3xl font-bold text-center mb-6 text-green-800">🌍 Eco Trivia Challenge</h2>
+      
+      <!-- Game Stats -->
+      <div class="flex justify-between items-center mb-6">
+        <div class="text-lg font-semibold">Score: <span id="score" class="text-green-600">0</span></div>
+        <div class="text-lg font-semibold">Question: <span id="questionNum" class="text-blue-600">1</span>/10</div>
+      </div>
+
+      <!-- Question Area -->
+      <div id="questionArea" class="mb-6">
+        <div id="question" class="text-xl mb-4 text-center"></div>
+        <div id="options" class="space-y-3"></div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
+        <div id="progress" class="bg-green-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+
+      <!-- Controls -->
+      <div class="text-center">
+        <button onclick="startGame()" id="startBtn" class="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 text-lg">
+          Start Challenge
+        </button>
+        <button onclick="resetGame()" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 ml-2">
+          Reset
+        </button>
+      </div>
+
+      <!-- Results -->
+      <div id="results" class="hidden text-center">
+        <h3 class="text-2xl font-bold mb-4">🎉 Challenge Complete!</h3>
+        <p class="text-lg mb-2">Final Score: <span id="finalScore" class="font-bold text-green-600">0</span>/100</p>
+        <p class="mb-4">Great job on learning about sustainability!</p>
+        <button onclick="window.location.href='index (2).html'" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
+          Back to GreenQuest
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Eco trivia questions
+    const questions = [
+      {
+        question: "Which of these items takes the longest to decompose?",
+        options: ["Plastic bottle", "Glass bottle", "Paper bag", "Banana peel"],
+        correct: 1,
+        explanation: "Glass bottles can take 1 million+ years to decompose!"
+      },
+      {
+        question: "What percentage of plastic waste is actually recycled globally?",
+        options: ["9%", "25%", "50%", "75%"],
+        correct: 0,
+        explanation: "Only about 9% of plastic waste is recycled globally!"
+      },
+      {
+        question: "Which renewable energy source is most efficient?",
+        options: ["Solar power", "Wind power", "Hydroelectric", "Geothermal"],
+        correct: 0,
+        explanation: "Solar power has become the cheapest and most efficient renewable energy source!"
+      },
+      {
+        question: "How many years does it take for a plastic bag to decompose?",
+        options: ["1 year", "10 years", "100 years", "500+ years"],
+        correct: 3,
+        explanation: "Plastic bags can take 500+ years to decompose!"
+      },
+      {
+        question: "What's the most effective way to reduce your carbon footprint?",
+        options: ["Recycle more", "Eat less meat", "Use LED bulbs", "Drive electric"],
+        correct: 1,
+        explanation: "Reducing meat consumption has the biggest impact on your carbon footprint!"
+      },
+      {
+        question: "Which country produces the most renewable energy?",
+        options: ["USA", "China", "Germany", "Brazil"],
+        correct: 1,
+        explanation: "China leads in renewable energy production globally!"
+      },
+      {
+        question: "How much water can you save by taking a 5-minute shower vs 10-minute?",
+        options: ["5 gallons", "12 gallons", "25 gallons", "50 gallons"],
+        correct: 2,
+        explanation: "You can save about 25 gallons by cutting shower time in half!"
+      },
+      {
+        question: "What's the #1 item found in ocean cleanups?",
+        options: ["Plastic bottles", "Cigarette butts", "Plastic bags", "Fishing nets"],
+        correct: 1,
+        explanation: "Cigarette butts are the most common item found in ocean cleanups!"
+      },
+      {
+        question: "Which tree absorbs the most CO2?",
+        options: ["Oak", "Pine", "Eucalyptus", "Mangrove"],
+        correct: 3,
+        explanation: "Mangrove trees absorb 3-4 times more CO2 than other trees!"
+      },
+      {
+        question: "What's the most sustainable form of transportation?",
+        options: ["Electric car", "Public transit", "Walking", "Bicycle"],
+        correct: 3,
+        explanation: "Bicycles are the most sustainable form of transportation!"
+      }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let gameStarted = false;
+
+    function startGame() {
+      gameStarted = true;
+      currentQuestion = 0;
+      score = 0;
+      
+      document.getElementById('startBtn').style.display = 'none';
+      document.getElementById('questionArea').style.display = 'block';
+      
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      if (currentQuestion >= questions.length) {
+        endGame();
+        return;
+      }
+
+      const question = questions[currentQuestion];
+      document.getElementById('question').textContent = question.question;
+      document.getElementById('questionNum').textContent = currentQuestion + 1;
+      
+      const optionsDiv = document.getElementById('options');
+      optionsDiv.innerHTML = '';
+      
+      question.options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.className = 'w-full p-4 text-left border-2 border-gray-300 rounded-lg hover:bg-green-100 hover:border-green-500 transition-all';
+        button.textContent = option;
+        button.onclick = () => checkAnswer(index);
+        optionsDiv.appendChild(button);
+      });
+
+      // Update progress bar
+      const progress = ((currentQuestion + 1) / questions.length) * 100;
+      document.getElementById('progress').style.width = progress + '%';
+    }
+
+    function checkAnswer(selectedIndex) {
+      const question = questions[currentQuestion];
+      
+      if (selectedIndex === question.correct) {
+        score += 10;
+        alert(`✅ Correct! ${question.explanation}`);
+      } else {
+        alert(`❌ Incorrect! ${question.explanation}`);
+      }
+      
+      document.getElementById('score').textContent = score;
+      currentQuestion++;
+      
+      setTimeout(() => {
+        loadQuestion();
+      }, 1000);
+    }
+
+    function endGame() {
+      document.getElementById('questionArea').style.display = 'none';
+      document.getElementById('results').classList.remove('hidden');
+      document.getElementById('finalScore').textContent = score;
+    }
+
+    function resetGame() {
+      currentQuestion = 0;
+      score = 0;
+      gameStarted = false;
+      
+      document.getElementById('score').textContent = '0';
+      document.getElementById('questionNum').textContent = '1';
+      document.getElementById('progress').style.width = '0%';
+      document.getElementById('startBtn').style.display = 'inline-block';
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('questionArea').style.display = 'none';
+    }
+
+    // Initialize
+    document.getElementById('questionArea').style.display = 'none';
+  </script>
+</body>
+</html>

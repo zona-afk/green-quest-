@@ -1,0 +1,243 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carbon Footprint Tracker - GreenQuest</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-green-50 text-gray-800">
+  <!-- Navbar -->
+  <nav class="bg-green-600 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Carbon Tracker</h1>
+      <div>
+        <a href="#home" class="mx-2 hover:underline">Home</a>
+        <a href="#calculator" class="mx-2 hover:underline">Calculator</a>
+        <a href="#eco-trivia" class="mx-2 hover:underline">Eco Trivia</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="py-20 text-center bg-green-100">
+    <div class="container mx-auto">
+      <h2 class="text-4xl font-bold mb-4">Track Your Carbon Footprint</h2>
+      <p class="text-lg mb-6">Calculate your environmental impact and discover ways to reduce it</p>
+    </div>
+  </section>
+
+  <!-- Carbon Calculator Section -->
+  <section id="calculator" class="py-20">
+    <div class="container mx-auto max-w-4xl">
+      <h2 class="text-3xl font-bold text-center mb-8">Carbon Footprint Calculator</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Transportation -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold mb-4">🚗 Transportation</h3>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Miles driven per week</label>
+            <input type="number" id="miles" class="w-full p-2 border rounded" placeholder="e.g., 150" min="0">
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Vehicle MPG</label>
+            <input type="number" id="mpg" class="w-full p-2 border rounded" placeholder="e.g., 25" min="1">
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Flights per year</label>
+            <input type="number" id="flights" class="w-full p-2 border rounded" placeholder="e.g., 2" min="0">
+          </div>
+        </div>
+
+        <!-- Home Energy -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold mb-4">⚡ Home Energy</h3>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Monthly electricity bill ($)</label>
+            <input type="number" id="electricity" class="w-full p-2 border rounded" placeholder="e.g., 120" min="0">
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Monthly gas bill ($)</label>
+            <input type="number" id="gas" class="w-full p-2 border rounded" placeholder="e.g., 80" min="0">
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Energy source</label>
+            <select id="energySource" class="w-full p-2 border rounded">
+              <option value="coal">Coal</option>
+              <option value="natural-gas">Natural Gas</option>
+              <option value="renewable">Renewable</option>
+              <option value="mixed">Mixed Grid</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Diet -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold mb-4">🥗 Diet</h3>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Diet type</label>
+            <select id="diet" class="w-full p-2 border rounded">
+              <option value="meat-heavy">Meat-heavy</option>
+              <option value="average">Average</option>
+              <option value="vegetarian">Vegetarian</option>
+              <option value="vegan">Vegan</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Weekly food waste (lbs)</label>
+            <input type="number" id="foodWaste" class="w-full p-2 border rounded" placeholder="e.g., 5" min="0">
+          </div>
+        </div>
+
+        <!-- Shopping -->
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold mb-4">🛍️ Shopping</h3>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Monthly shopping budget ($)</label>
+            <input type="number" id="shopping" class="w-full p-2 border rounded" placeholder="e.g., 500" min="0">
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">Clothing purchases</label>
+            <select id="clothes" class="w-full p-2 border rounded">
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="seasonally">Seasonally</option>
+              <option value="rarely">Rarely</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center mt-8">
+        <button onclick="calculateFootprint()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 mr-4">
+          Calculate My Footprint
+        </button>
+        <button onclick="resetForm()" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600">
+          Reset
+        </button>
+      </div>
+
+      <!-- Results Section -->
+      <div id="results" class="mt-12 bg-white p-6 rounded-lg shadow hidden">
+        <h3 class="text-2xl font-semibold mb-4">Your Carbon Footprint</h3>
+        <p class="text-lg mb-4">Your estimated carbon footprint is: <span id="totalFootprint" class="font-bold">0</span> tons CO2 per year</p>
+        <div class="w-full bg-gray-200 rounded-full h-6 mb-6">
+          <div id="progressBar" class="bg-green-600 h-6 rounded-full" style="width: 0%"></div>
+        </div>
+        <h4 class="text-lg font-semibold mb-2">Tips to Reduce Your Footprint:</h4>
+        <ul id="tipsList" class="list-disc list-inside"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Eco Trivia Section (Placeholder) -->
+  <section id="eco-trivia" class="py-20 bg-green-100">
+    <div class="container mx-auto text-center">
+      <h2 class="text-3xl font-bold mb-8">Eco Trivia</h2>
+      <p class="text-lg">Coming soon: Test your environmental knowledge with our interactive eco trivia!</p>
+    </div>
+  </section>
+
+  <script>
+    function calculateFootprint() {
+      const miles = parseFloat(document.getElementById('miles').value) || 0;
+      const mpg = parseFloat(document.getElementById('mpg').value) || 25;
+      const flights = parseFloat(document.getElementById('flights').value) || 0;
+      const electricity = parseFloat(document.getElementById('electricity').value) || 0;
+      const gas = parseFloat(document.getElementById('gas').value) || 0;
+      const diet = document.getElementById('diet').value;
+      const foodWaste = parseFloat(document.getElementById('foodWaste').value) || 0;
+      const shopping = parseFloat(document.getElementById('shopping').value) || 0;
+
+      // Carbon calculations (simplified factors)
+      const transportCO2 = (miles * 52) / mpg * 19.6; // lbs CO2 per year
+      const flightCO2 = flights * 2200; // lbs CO2 per flight
+      const energyCO2 = (electricity * 12 * 1.22) + (gas * 12 * 11.7); // lbs CO2 per year
+      
+      const dietFactors = {
+        'meat-heavy': 2.5,
+        'average': 2.0,
+        'vegetarian': 1.5,
+        'vegan': 1.0
+      };
+      const dietCO2 = dietFactors[diet] * 2200; // lbs CO2 per year
+      
+      const wasteCO2 = foodWaste * 52 * 2.5; // lbs CO2 per year
+      const shoppingCO2 = shopping * 12 * 0.5; // lbs CO2 per year
+      
+      const totalLbs = transportCO2 + flightCO2 + energyCO2 + dietCO2 + wasteCO2 + shoppingCO2;
+      const totalTons = (totalLbs / 2000).toFixed(2);
+
+      // Display results
+      document.getElementById('totalFootprint').textContent = totalTons;
+      
+      // Progress bar
+      const progress = Math.min((totalTons / 16) * 100, 100);
+      document.getElementById('progressBar').style.width = progress + '%';
+      
+      // Generate tips
+      const tips = [];
+      if (miles > 100) tips.push("Consider carpooling, public transport, or biking");
+      if (flights > 2) tips.push("Reduce air travel or purchase carbon offsets");
+      if (electricity > 100) tips.push("Switch to LED bulbs and energy-efficient appliances");
+      if (diet === 'meat-heavy') tips.push("Try Meatless Mondays or reduce meat consumption");
+      if (foodWaste > 3) tips.push("Plan meals ahead and store food properly");
+      if (shopping > 400) tips.push("Buy less, choose sustainable brands, and shop secondhand");
+      
+      const tipsList = document.getElementById('tipsList');
+      tipsList.innerHTML = tips.map(tip => `<li class="text-sm">• ${tip}</li>`).join('');
+      
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function resetForm() {
+      const inputs = document.querySelectorAll('input[type="number"]');
+      inputs.forEach(input => input.value = '');
+      const selects = document.querySelectorAll('select');
+      selects.forEach(select => select.selectedIndex = 0);
+      document.getElementById('results').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

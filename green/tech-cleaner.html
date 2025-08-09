@@ -1,0 +1,460 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tech Cleaner - Optimize Your Tech Habits</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    canvas { border: 2px solid #2f855a; }
+  </style>
+</head>
+<body class="bg-green-50 text-gray-800">
+  <!-- Navbar -->
+  <nav class="bg-green-600 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Carbon Tracker</h1>
+      <div>
+        <a href="#home" class="mx-2 hover:underline">Home</a>
+        <a href="#dashboard" class="mx-2 hover:underline">Dashboard</a>
+        <a href="#tech-challenges" class="mx-2 hover:underline">Tech Challenges</a>
+        <a href="#leaderboard" class="mx-2 hover:underline">Leaderboard</a>
+        <a href="#badges" class="mx-2 hover:underline">Badges</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="py-20 text-center bg-green-100">
+    <div class="container mx-auto">
+      <h2 class="text-4xl font-bold mb-4">Optimize Your Tech Habits!</h2>
+      <p class="text-lg mb-6">Complete energy-efficient tech challenges to earn power points, plant virtual trees, and unlock rewards!</p>
+      <button onclick="document.getElementById('tech-challenges').scrollIntoView({ behavior: 'smooth' })" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md">Start Your Journey</button>
+    </div>
+  </section>
+
+  <!-- Dashboard Section -->
+  <section id="dashboard" class="py-20">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Your Tech Dashboard</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Power Points</h3>
+          <p id="points" class="text-2xl">0</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Badges Earned</h3>
+          <p id="badges" class="text-2xl">0</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Trees Planted</h3>
+          <p id="treeCount" class="text-2xl">0</p>
+        </div>
+      </div>
+      <div class="mt-8">
+        <h3 class="text-xl font-semibold">Your Circuit Map</h3>
+        <canvas id="mapCanvas" width="800" height="400" class="w-full bg-white rounded-lg" aria-label="Circuit map showing your progress with completed challenges marked as power nodes"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Challenges Section -->
+  <section id="tech-challenges" class="py-20 bg-green-100">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Tech Challenges</h2>
+      <p class="text-center mb-6">Complete energy-efficient tech tasks to unlock power nodes, plant trees, and earn points!</p>
+      <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-semibold">Your Challenges</h3>
+        <ul id="task-list" class="space-y-4 mt-4">
+          <li class="flex justify-between items-center">
+            <span>Turn off unused devices for a day (50 points)</span>
+            <button onclick="completeTask(0, 50)" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Mark Turn Off Devices Task as Done">Done</button>
+          </li>
+          <li class="flex justify-between items-center">
+            <span>Enable power-saving mode on your PC (50 points)</span>
+            <button onclick="completeTask(1, 50)" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Mark Power-Saving Mode Task as Done">Done</button>
+          </li>
+          <li class="flex justify-between items-center">
+            <span>Unplug chargers when not in use (50 points)</span>
+            <button onclick="completeTask(2, 50)" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Mark Unplug Chargers Task as Done">Done</button>
+          </li>
+          <li class="flex justify-between items-center">
+            <span>Plant a virtual tree (100 points)</span>
+            <button onclick="completeTask(3, 100, true)" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Mark Plant Tree Task as Done">Done</button>
+          </li>
+        </ul>
+        <div class="flex justify-between mt-4">
+          <button onclick="addNewTask()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Add New Challenge</button>
+          <button onclick="plantTree()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" disabled id="plantButton">Plant Tree (100 points)</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Leaderboard Section -->
+  <section id="leaderboard" class="py-20">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Hall of Tech Optimizers</h2>
+      <div class="bg-white p-6 rounded-lg shadow">
+        <ul id="leaderboard-list" class="space-y-4">
+          <li class="flex justify-between"><span>1. TechOptimizer</span><span>1500 points</span></li>
+          <li class="flex justify-between"><span>2. EnergyHacker</span><span>1300 points</span></li>
+          <li class="flex justify-between"><span>3. PowerSaver</span><span>1100 points</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Badges Section -->
+  <section id="badges" class="py-20 bg-green-100">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Tech Badges</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow" tabindex="0" aria-label="Energy Saver badge: Complete 5 tech challenges, currently locked">
+          <h3 class="text-xl font-semibold">Energy Saver</h3>
+          <p>Complete 5 tech challenges.</p>
+          <p id="energy-saver" class="text-gray-500">Locked</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow" tabindex="0" aria-label="Power Mode Master badge: Use power-saving mode for 5 days, currently locked">
+          <h3 class="text-xl font-semibold">Power Mode Master</h3>
+          <p>Use power-saving mode for 5 days.</p>
+          <p id="power-mode-master" class="text-gray-500">Locked</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow" tabindex="0" aria-label="Circuit Guardian badge: Plant 10 virtual trees, currently locked">
+          <h3 class="text-xl font-semibold">Circuit Guardian</h3>
+          <p>Plant 10 virtual trees.</p>
+          <p id="circuit-guardian" class="text-gray-500">Locked</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    let points = 0;
+    let badges = 0;
+    let tasksCompleted = 0;
+    let treeCount = 0;
+    let taskProgress = [false, false, false, false];
+    let tasks = [
+      "Turn off unused devices for a day (50 points)",
+      "Enable power-saving mode on your PC (50 points)",
+      "Unplug chargers when not in use (50 points)",
+      "Plant a virtual tree (100 points)"
+    ];
+    const trees = [];
+
+    const canvas = document.getElementById("mapCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function updateDashboard() {
+      document.getElementById("points").textContent = points;
+      document.getElementById("badges").textContent = badges;
+      document.getElementById("treeCount").textContent = treeCount;
+      checkBadges();
+      drawMap();
+      updateChart();
+      updateLeaderboard();
+      updatePlantButton();
+    }
+
+    function completeTask(index, taskPoints, isTreeTask = false) {
+      if (!taskProgress[index]) {
+        taskProgress[index] = true;
+        const taskList = document.getElementById("task-list").children;
+        taskList[index].querySelector("button").disabled = true;
+        taskList[index].querySelector("button").textContent = "Completed";
+        taskList[index].querySelector("button").classList.remove("bg-green-600", "hover:bg-green-700");
+        taskList[index].querySelector("button").classList.add("bg-gray-400");
+        taskList[index].querySelector("span").classList.add("line-through");
+        points += taskPoints;
+        tasksCompleted += 1;
+        if (isTreeTask) {
+          treeCount += 1;
+          drawTree();
+        }
+        updateDashboard();
+        alert(`Challenge completed! +${taskPoints} power points`);
+        saveProgress();
+      }
+    }
+
+    function addNewTask() {
+      const task = prompt("Enter a new energy-efficient tech challenge:");
+      if (task && task.trim() && task.length <= 100) {
+        const taskList = document.getElementById("task-list");
+        const index = taskProgress.length;
+        tasks.push(`${task} (50 points)`);
+        taskProgress.push(false);
+        const li = document.createElement("li");
+        li.className = "flex justify-between items-center";
+        li.innerHTML = `<span>${task} (50 points)</span><button onclick="completeTask(${index}, 50)" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Mark ${task} as Done">Done</button>`;
+        taskList.appendChild(li);
+        saveProgress();
+      } else if (task) {
+        alert("Please enter a valid challenge (max 100 characters).");
+      }
+    }
+
+    function updatePlantButton() {
+      const plantButton = document.getElementById("plantButton");
+      plantButton.disabled = points < 100 || taskProgress[3];
+      if (!plantButton.disabled) {
+        plantButton.classList.remove("bg-gray-400");
+        plantButton.classList.add("bg-green-600", "hover:bg-green-700");
+      } else {
+        plantButton.classList.remove("bg-green-600", "hover:bg-green-700");
+        plantButton.classList.add("bg-gray-400");
+      }
+    }
+
+    function plantTree() {
+      if (points >= 100 && !taskProgress[3]) {
+        completeTask(3, 100, true);
+      }
+    }
+
+    function checkBadges() {
+      let newBadges = 0;
+      if (tasksCompleted >= 5) {
+        document.getElementById("energy-saver").textContent = "Unlocked";
+        document.getElementById("energy-saver").classList.remove("text-gray-500");
+        document.getElementById("energy-saver").classList.add("text-green-600");
+        newBadges = 1;
+      }
+      if (taskProgress[1]) {
+        document.getElementById("power-mode-master").textContent = "Unlocked";
+        document.getElementById("power-mode-master").classList.remove("text-gray-500");
+        document.getElementById("power-mode-master").classList.add("text-green-600");
+        newBadges = Math.max(newBadges, 2);
+      }
+      if (treeCount >= 10) {
+        document.getElementById("circuit-guardian").textContent = "Unlocked";
+        document.getElementById("circuit-guardian").classList.remove("text-gray-500");
+        document.getElementById("circuit-guardian").classList.add("text-green-600");
+        newBadges = Math.max(newBadges, 3);
+      }
+      badges = newBadges;
+      document.getElementById("badges").textContent = badges;
+    }
+
+    function updateRank() {
+      const leaderboard = [
+        { name: "TechOptimizer", points: 1500 },
+        { name: "EnergyHacker", points: 1300 },
+        { name: "PowerSaver", points: 1100 }
+      ];
+      let rank = leaderboard.length + 1;
+      for (let i = 0; i < leaderboard.length; i++) {
+        if (points > leaderboard[i].points) {
+          rank = i + 1;
+          break;
+        }
+      }
+      return rank === leaderboard.length + 1 ? "Unranked" : `#${rank}`;
+    }
+
+    function updateLeaderboard() {
+      const leaderboard = [
+        { name: "TechOptimizer", points: 1500 },
+        { name: "EnergyHacker", points: 1300 },
+        { name: "PowerSaver", points: 1100 },
+        { name: "You", points: points }
+      ].sort((a, b) => b.points - a.points);
+      const leaderboardList = document.getElementById("leaderboard-list");
+      leaderboardList.innerHTML = "";
+      leaderboard.slice(0, 3).forEach((entry, i) => {
+        const li = document.createElement("li");
+        li.className = "flex justify-between";
+        li.innerHTML = `<span>${i + 1}. ${entry.name}</span><span>${entry.points} points</span>`;
+        leaderboardList.appendChild(li);
+      });
+    }
+
+    function drawMap() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const scaleX = canvas.width / 800;
+      const scaleY = canvas.height / 400;
+
+      ctx.strokeStyle = "#2f855a";
+      ctx.lineWidth = 5 * Math.min(scaleX, scaleY);
+      ctx.beginPath();
+      ctx.moveTo(50 * scaleX, canvas.height - 50 * scaleY);
+      ctx.lineTo(canvas.width - 50 * scaleX, 50 * scaleY);
+      ctx.stroke();
+
+      const powerNodePositions = [
+        { x: 100 * scaleX, y: canvas.height - 100 * scaleY },
+        { x: 200 * scaleX, y: canvas.height - 150 * scaleY },
+        { x: 300 * scaleX, y: 100 * scaleY },
+        { x: 400 * scaleX, y: 50 * scaleY }
+      ];
+      taskProgress.forEach((completed, i) => {
+        if (completed && i < powerNodePositions.length) {
+          ctx.fillStyle = "#16a34a";
+          ctx.beginPath();
+          ctx.arc(powerNodePositions[i].x, powerNodePositions[i].y, 10 * Math.min(scaleX, scaleY), 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      });
+
+      const progress = tasksCompleted / taskProgress.length;
+      const playerX = (50 + progress * (canvas.width - 100)) * scaleX;
+      const playerY = (canvas.height - 50 - progress * (canvas.height - 100)) * scaleY;
+      ctx.fillStyle = "#16a34a";
+      ctx.beginPath();
+      ctx.arc(playerX, playerY, 15 * Math.min(scaleX, scaleY), 0, 2 * Math.PI);
+      ctx.fill();
+
+      trees.forEach(tree => {
+        ctx.fillStyle = "#2f855a";
+        ctx.beginPath();
+        ctx.arc(tree.x * scaleX, tree.y * scaleY, 20 * Math.min(scaleX, scaleY), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#4a3728";
+        ctx.fillRect((tree.x - 5) * scaleX, (tree.y + 20) * scaleY, 10 * Math.min(scaleX, scaleY), 30 * Math.min(scaleX, scaleY));
+      });
+    }
+
+    function drawTree() {
+      const x = Math.random() * (canvas.width / Math.min(canvas.width / 800, canvas.height / 400) - 50) + 25;
+      const y = Math.random() * (canvas.height / Math.min(canvas.width / 800, canvas.height / 400) - 50) + 25;
+      trees.push({ x, y });
+      drawMap();
+    }
+
+    function updateChart() {
+      const chartData = taskProgress.map((completed, i) => completed ? (i === 3 ? 100 : 50) : 0).filter(val => val > 0);
+      const chartLabels = taskProgress.map((_, i) => `Challenge ${i + 1}`).slice(0, chartData.length);
+
+      const chartCanvas = document.createElement('canvas');
+      const existingChart = document.querySelector('#dashboard canvas:not(#mapCanvas)');
+      if (existingChart) existingChart.remove();
+      document.getElementById('dashboard').appendChild(chartCanvas);
+      new Chart(chartCanvas, {
+        type: 'line',
+        data: {
+          labels: chartLabels.length ? chartLabels : ['No Challenges Completed'],
+          datasets: [{
+            label: 'Power Points Earned',
+            data: chartData.length ? chartData : [0],
+            borderColor: '#16a34a',
+            backgroundColor: 'rgba(22, 163, 74, 0.2)',
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    function saveProgress() {
+      try {
+        localStorage.setItem("techCleaner", JSON.stringify({ points, badges, tasksCompleted, taskProgress, tasks, treeCount, trees }));
+      } catch (e) {
+        console.error("Error saving progress:", e);
+        alert("Failed to save progress.");
+      }
+    }
+
+    function loadProgress() {
+      try {
+        const data = JSON.parse(localStorage.getItem("techCleaner")) || {
+          points: 0,
+          badges: 0,
+          tasksCompleted: 0,
+          taskProgress: [false, false, false, false],
+          tasks: [
+            "Turn off unused devices for a day (50 points)",
+            "Enable power-saving mode on your PC (50 points)",
+            "Unplug chargers when not in use (50 points)",
+            "Plant a virtual tree (100 points)"
+          ],
+          treeCount: 0,
+          trees: []
+        };
+        points = data.points || 0;
+        badges = data.badges || 0;
+        tasksCompleted = data.tasksCompleted || 0;
+        taskProgress = data.taskProgress || [false, false, false, false];
+        tasks = data.tasks || [
+          "Turn off unused devices for a day (50 points)",
+          "Enable power-saving mode on your PC (50 points)",
+          "Unplug chargers when not in use (50 points)",
+          "Plant a virtual tree (100 points)"
+        ];
+        treeCount = data.treeCount || 0;
+        trees.push(...(data.trees || []));
+        updateDashboard();
+
+        const taskList = document.getElementById("task-list");
+        taskList.innerHTML = "";
+        tasks.forEach((task, i) => {
+          const li = document.createElement("li");
+          li.className = "flex justify-between items-center";
+          li.innerHTML = `<span${taskProgress[i] ? ' class="line-through"' : ''}>${task}</span><button onclick="completeTask(${i}, ${i === 3 ? 100 : 50}${i === 3 ? ', true' : ''})" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"${taskProgress[i] ? ' disabled' : ''} aria-label="Mark ${task} as Done">Done</button>`;
+          taskList.appendChild(li);
+        });
+      } catch (e) {
+        console.error("Error loading progress:", e);
+        alert("Failed to load progress. Starting fresh.");
+      }
+    }
+
+    window.addEventListener('resize', () => {
+      canvas.width = canvas.parentElement.clientWidth;
+      drawMap();
+    });
+    window.onload = () => {
+      canvas.width = canvas.parentElement.clientWidth;
+      loadProgress();
+    };
+  </script>
+</body>
+</html>

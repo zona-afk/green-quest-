@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recycle Sort - GreenQuest</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .item {
+      cursor: grab;
+      transition: transform 0.2s;
+    }
+    .item:hover {
+      transform: scale(1.05);
+    }
+    .item.dragging {
+      cursor: grabbing;
+      opacity: 0.5;
+    }
+    .bin {
+      min-height: 200px;
+      border: 3px dashed #ccc;
+      transition: all 0.3s;
+    }
+    .bin.drag-over {
+      border-color: #10b981;
+      background-color: #f0fdf4;
+      transform: scale(1.02);
+    }
+    .bin.correct {
+      border-color: #22c55e;
+      background-color: #dcfce7;
+    }
+    .bin.incorrect {
+      border-color: #ef4444;
+      background-color: #fef2f2;
+    }
+  </style>
+</head>
+<body class="bg-green-50">
+  <!-- Navigation -->
+  <nav class="bg-green-600 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Recycle Sort Challenge</h1>
+      <a href="index (2).html" class="hover:underline">← Back to GreenQuest</a>
+    </div>
+  </nav>
+
+  <!-- Game Header -->
+  <div class="container mx-auto p-6">
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <h2 class="text-2xl font-bold mb-2">Sort the Items Correctly!</h2>
+      <p class="text-gray-600 mb-4">Drag items to their correct recycling bins. Score points for correct sorting!</p>
+      <div class="flex justify-between items-center">
+        <div>
+          <span class="text-lg font-semibold">Score: <span id="score" class="text-green-600">0</span></span>
+        </div>
+        <div>
+          <span class="text-lg font-semibold">Time: <span id="timer" class="text-blue-600">60</span>s</span>
+        </div>
+        <div>
+          <span class="text-lg font-semibold">Streak: <span id="streak" class="text-purple-600">0</span></span>
+        </div>
+      </div>
+      <div class="mt-4">
+        <button onclick="startGame()" id="startBtn" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">Start Game</button>
+        <button onclick="resetGame()" class="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700 ml-2">Reset</button>
+      </div>
+    </div>
+
+    <!-- Items to Sort -->
+    <div id="itemsContainer" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <!-- Items will be populated by JavaScript -->
+    </div>
+
+    <!-- Recycling Bins -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <!-- Paper Bin -->
+      <div class="text-center">
+        <h3 class="text-lg font-semibold mb-2">Paper ♻️</h3>
+        <div id="paper-bin" class="bin bg-blue-100 rounded-lg p-4" data-type="paper">
+          <div class="text-4xl mb-2">📰</div>
+          <p class="text-sm text-gray-600">Newspapers, magazines, cardboard</p>
+        </div>
+      </div>
+
+      <!-- Plastic Bin -->
+      <div class="text-center">
+        <h3 class="text-lg font-semibold mb-2">Plastic ♻️</h3>
+        <div id="plastic-bin" class="bin bg-red-100 rounded-lg p-4" data-type="plastic">
+          <div class="text-4xl mb-2">🥤</div>
+          <p class="text-sm text-gray-600">Bottles, containers, bags</p>
+        </div>
+      </div>
+
+      <!-- Glass Bin -->
+      <div class="text-center">
+        <h3 class="text-lg font-semibold mb-2">Glass ♻️</h3>
+        <div id="glass-bin" class="bin bg-green-100 rounded-lg p-4" data-type="glass">
+          <div class="text-4xl mb-2">🍾</div>
+          <p class="text-sm text-gray-600">Bottles, jars, containers</p>
+        </div>
+      </div>
+
+      <!-- Trash Bin -->
+      <div class="text-center">
+        <h3 class="text-lg font-semibold mb-2">Trash 🗑️</h3>
+        <div id="trash-bin" class="bin bg-gray-100 rounded-lg p-4" data-type="trash">
+          <div class="text-4xl mb-2">🗑️</div>
+          <p class="text-sm text-gray-600">Non-recyclable items</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+      <div class="bg-white rounded-lg p-8 max-w-md mx-4">
+        <h3 class="text-2xl font-bold mb-4">Game Over!</h3>
+        <p class="text-lg mb-2">Final Score: <span id="finalScore" class="font-bold text-green-600">0</span></p>
+        <p class="text-lg mb-2">Best Streak: <span id="bestStreak" class="font-bold text-purple-600">0</span></p>
+        <p class="mb-4">Items Sorted: <span id="itemsSorted" class="font-bold">0</span></p>
+        <button onclick="closeModal()" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Game variables
+    let score = 0;
+    let streak = 0;
+    let bestStreak = 0;
+    let itemsSorted = 0;
+    let gameActive = false;
+    let timeLeft = 60;
+    let timerInterval;
+
+    // Items data with their correct bins
+    const items = [
+      { name: "Plastic Bottle", type: "plastic", emoji: "🍼", bin: "plastic" },
+      { name: "Newspaper", type: "paper", emoji: "📰", bin: "paper" },
+      { name: "Glass Jar", type: "glass", emoji: "🫙", bin: "glass" },
+      { name: "Cardboard Box", type: "paper", emoji: "📦", bin: "paper" },
+      { name: "Plastic Bag", type: "plastic", emoji: "🛍️", bin: "plastic" },
+      { name: "Wine Bottle", type: "glass", emoji: "🍷", bin: "glass" },
+      { name: "Pizza Box", type: "trash", emoji: "🍕", bin: "trash" },
+      { name: "Styrofoam Cup", type: "trash", emoji: "☕", bin: "trash" },
+      { name: "Aluminum Can", type: "plastic", emoji: "🥫", bin: "plastic" },
+      { name: "Magazine", type: "paper", emoji: "📖", bin: "paper" },
+      { name: "Glass Vase", type: "glass", emoji: "🏺", bin: "glass" },
+      { name: "Plastic Container", type: "plastic", emoji: "🥡", bin: "plastic" },
+      { name: "Paper Bag", type: "paper", emoji: "🛍️", bin: "paper" },
+      { name: "Broken Glass", type: "trash", emoji: "💔", bin: "trash" },
+      { name: "Junk Mail", type: "paper", emoji: "📧", bin: "paper" }
+    ];
+
+    // Shuffle array function
+    function shuffleArray(array) {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    }
+
+    // Start game
+    function startGame() {
+      gameActive = true;
+      score = 0;
+      streak = 0;
+      itemsSorted = 0;
+      timeLeft = 60;
+      
+      updateDisplay();
+      startTimer();
+      loadItems();
+      
+      document.getElementById('startBtn').disabled = true;
+    }
+
+    // Start timer
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+        
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    // Load items
+    function loadItems() {
+      const container = document.getElementById('itemsContainer');
+      container.innerHTML = '';
+      
+      const shuffledItems = shuffleArray(items).slice(0, 8);
+      
+      shuffledItems.forEach((item, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'item bg-white rounded-lg p-4 shadow cursor-move';
+        itemDiv.draggable = true;
+        itemDiv.dataset.type = item.bin;
+        itemDiv.dataset.name = item.name;
+        itemDiv.innerHTML = `
+          <div class="text-3xl mb-2">${item.emoji}</div>
+          <p class="text-sm font-semibold">${item.name}</p>
+        `;
+        
+        // Add drag events
+        itemDiv.addEventListener('dragstart', handleDragStart);
+        itemDiv.addEventListener('dragend', handleDragEnd);
+        
+        container.appendChild(itemDiv);
+      });
+    }
+
+    // Drag and drop handlers
+    function handleDragStart(e) {
+      if (!gameActive) return;
+      e.dataTransfer.setData('text/plain', e.target.dataset.type + '|' + e.target.dataset.name);
+      e.target.classList.add('dragging');
+    }
+
+    function handleDragEnd(e) {
+      e.target.classList.remove('dragging');
+    }
+
+    // Bin event listeners
+    document.querySelectorAll('.bin').forEach(bin => {
+      bin.addEventListener('dragover', handleDragOver);
+      bin.addEventListener('drop', handleDrop);
+      bin.addEventListener('dragleave', handleDragLeave);
+    });
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      
+      if (!gameActive) return;
+      
+      const [itemType, itemName] = e.dataTransfer.getData('text/plain').split('|');
+      const binType = e.currentTarget.dataset.type;
+      
+      const draggedItem = document.querySelector('.dragging');
+      
+      if (itemType === binType) {
+        // Correct sorting
+        score += 10 + (streak * 2);
+        streak++;
+        itemsSorted++;
+        bestStreak = Math.max(bestStreak, streak);
+        
+        e.currentTarget.classList.add('correct');
+        setTimeout(() => e.currentTarget.classList.remove('correct'), 500);
+        
+        draggedItem.remove();
+        
+        if (document.querySelectorAll('.item').length === 0) {
+          loadItems(); // Load new items
+        }
+      } else {
+        // Incorrect sorting
+        streak = 0;
+        score = Math.max(0, score - 5);
+        
+        e.currentTarget.classList.add('incorrect');
+        setTimeout(() => e.currentTarget.classList.remove('incorrect'), 500);
+        
+        // Show feedback
+        const correctBin = document.querySelector(`[data-type="${itemType}"]`);
+        correctBin.classList.add('correct');
+        setTimeout(() => correctBin.classList.remove('correct'), 1000);
+      }
+      
+      updateDisplay();
+    }
+
+    // Update display
+    function updateDisplay() {
+      document.getElementById('score').textContent = score;
+      document.getElementById('streak').textContent = streak;
+    }
+
+    // End game
+    function endGame() {
+      gameActive = false;
+      clearInterval(timerInterval);
+      
+      document.getElementById('finalScore').textContent = score;
+      document.getElementById('bestStreak').textContent = bestStreak;
+      document.getElementById('itemsSorted').textContent = itemsSorted;
+      document.getElementById('gameOverModal').classList.remove('hidden');
+      document.getElementById('gameOverModal').classList.add('flex');
+      
+      document.getElementById('startBtn').disabled = false;
+    }
+
+    // Close modal and reset
+    function closeModal() {
+      document.getElementById('gameOverModal').classList.add('hidden');
+      document.getElementById('gameOverModal').classList.remove('flex');
+      resetGame();
+    }
+
+    // Reset game
+    function resetGame() {
+      gameActive = false;
+      clearInterval(timerInterval);
+      timeLeft = 60;
+      score = 0;
+      streak = 0;
+      itemsSorted = 0;
+      
+      updateDisplay();
+      document.getElementById('timer').textContent = timeLeft;
+      document.getElementById('itemsContainer').innerHTML = '';
+      document.getElementById('startBtn').disabled = false;
+    }
+
+    // Initialize
+    updateDisplay();
+  </script>
+</body>
+</html>

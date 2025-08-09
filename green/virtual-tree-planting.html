@@ -1,0 +1,167 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Tree Planting - GreenQuest</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    canvas { border: 2px solid #2f855a; }
+    .tree { position: absolute; font-size: 2rem; }
+  </style>
+</head>
+<body class="bg-green-50 text-gray-800">
+  <!-- Navbar -->
+  <nav class="bg-green-600 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Carbon Tracker</h1>
+      <div>
+        <a href="#home" class="mx-2 hover:underline">Home</a>
+        <a href="#calculator" class="mx-2 hover:underline">Calculator</a>
+        <a href="#tree-planting" class="mx-2 hover:underline">Tree Planting</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="py-20 text-center bg-green-100">
+    <div class="container mx-auto">
+      <h2 class="text-4xl font-bold mb-4">Virtual Tree Planting</h2>
+      <p class="text-lg mb-6">Complete eco-friendly tasks to earn points and plant virtual trees!</p>
+    </div>
+  </section>
+
+  <!-- Tree Planting Section -->
+  <section id="tree-planting" class="py-20">
+    <div class="container mx-auto max-w-4xl">
+      <h2 class="text-3xl font-bold text-center mb-8">Plant Trees by Completing Eco-Tasks</h2>
+      
+      <div class="flex flex-col md:flex-row gap-6">
+        <!-- Task List -->
+        <div class="bg-white p-6 rounded-lg shadow w-full md:w-1/2">
+          <h3 class="text-xl font-semibold mb-4">🌱 Eco-Tasks</h3>
+          <p class="text-sm mb-4">Points: <span id="points">0</span> | Trees Planted: <span id="treeCount">0</span></p>
+          <ul id="taskList" class="space-y-4">
+            <li class="flex items-center justify-between bg-gray-100 p-3 rounded">
+              <span>Use reusable bags for shopping (10 points)</span>
+              <button onclick="completeTask(10, this)" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Complete</button>
+            </li>
+            <li class="flex items-center justify-between bg-gray-100 p-3 rounded">
+              <span>Switch to LED bulbs (15 points)</span>
+              <button onclick="completeTask(15, this)" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Complete</button>
+            </li>
+            <li class="flex items-center justify-between bg-gray-100 p-3 rounded">
+              <span>Walk or bike instead of driving (20 points)</span>
+              <button onclick="completeTask(20, this)" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Complete</button>
+            </li>
+            <li class="flex items-center justify-between bg-gray-100 p-3 rounded">
+              <span>Reduce meat consumption for a day (25 points)</span>
+              <button onclick="completeTask(25, this)" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Complete</button>
+            </li>
+          </ul>
+          <div class="text-center mt-6">
+            <button onclick="plantTree()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700" disabled id="plantButton">
+              Plant a Tree (50 points)
+            </button>
+          </div>
+        </div>
+
+        <!-- Virtual Garden -->
+        <div class="bg-white p-6 rounded-lg shadow w-full md:w-1/2 relative">
+          <h3 class="text-xl font-semibold mb-4">🌳 Your Virtual Garden</h3>
+          <canvas id="gardenCanvas" width="400" height="400"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    let points = 0;
+    let treeCount = 0;
+    const trees = [];
+
+    function completeTask(taskPoints, button) {
+      points += taskPoints;
+      document.getElementById('points').textContent = points;
+      button.disabled = true;
+      button.textContent = 'Completed';
+      button.classList.remove('bg-green-600', 'hover:bg-green-700');
+      button.classList.add('bg-gray-400');
+      updatePlantButton();
+    }
+
+    function updatePlantButton() {
+      const plantButton = document.getElementById('plantButton');
+      plantButton.disabled = points < 50;
+      if (!plantButton.disabled) {
+        plantButton.classList.remove('bg-gray-400');
+        plantButton.classList.add('bg-green-600', 'hover:bg-green-700');
+      }
+    }
+
+    function plantTree() {
+      if (points >= 50) {
+        points -= 50;
+        treeCount += 1;
+        document.getElementById('points').textContent = points;
+        document.getElementById('treeCount').textContent = treeCount;
+
+        const canvas = document.getElementById('gardenCanvas');
+        const ctx = canvas.getContext('2d');
+        const x = Math.random() * (canvas.width - 50) + 25;
+        const y = Math.random() * (canvas.height - 50) + 25;
+
+        // Draw simple tree (circle for foliage, rectangle for trunk)
+        ctx.fillStyle = '#2f855a';
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#4a3728';
+        ctx.fillRect(x - 5, y + 20, 10, 30);
+
+        trees.push({ x, y });
+        updatePlantButton();
+      }
+    }
+  </script>
+</body>
+</html>

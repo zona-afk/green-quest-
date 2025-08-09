@@ -1,0 +1,170 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tech Cleaner - Register</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .error { color: #dc2626; font-size: 0.875rem; }
+    input:focus { outline: none; border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2); }
+  </style>
+</head>
+<body class="bg-green-50 text-gray-800">
+  <!-- Navbar -->
+  <nav class="bg-green-600 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Green Quest</h1>
+      <div>
+        <a href="tech-cleaner-dashboard.html" class="mx-2 hover:underline">Home</a>
+        <a href="tech-cleaner-dashboard.html#dashboard" class="mx-2 hover:underline">Dashboard</a>
+        <a href="tech-cleaner-dashboard.html#tech-challenges" class="mx-2 hover:underline">Tech Challenges</a>
+        <a href="tech-cleaner-dashboard.html#leaderboard" class="mx-2 hover:underline">Leaderboard</a>
+        <a href="tech-cleaner-dashboard.html#achievements" class="mx-2 hover:underline">Achievements</a>
+        <a href="register.html" class="mx-2 hover:underline font-bold">Register</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Registration Section -->
+  <section class="py-20 bg-green-100">
+    <div class="container mx-auto max-w-md">
+      <h2 class="text-3xl font-bold text-center mb-8">Join Green Quest</h2>
+      <div class="bg-white p-8 rounded-lg shadow">
+        <h3 class="text-xl font-semibold mb-6">Create Your Account</h3>
+        <div class="space-y-4">
+          <div>
+            <label for="username" class="block text-sm font-medium">Username</label>
+            <input type="text" id="username" class="w-full mt-1 p-2 border border-gray-300 rounded focus:border-green-600" aria-label="Enter your username" required>
+            <p id="username-error" class="error hidden">Username must be at least 3 characters long.</p>
+          </div>
+          <div>
+            <label for="email" class="block text-sm font-medium">Email</label>
+            <input type="email" id="email" class="w-full mt-1 p-2 border border-gray-300 rounded focus:border-green-600" aria-label="Enter your email" required>
+            <p id="email-error" class="error hidden">Please enter a valid email address.</p>
+          </div>
+          <div>
+            <label for="password" class="block text-sm font-medium">Password</label>
+            <input type="password" id="password" class="w-full mt-1 p-2 border border-gray-300 rounded focus:border-green-600" aria-label="Enter your password" required>
+            <p id="password-error" class="error hidden">Password must be at least 6 characters long.</p>
+          </div>
+          <button onclick="register()" class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Register for Green Quest">Register</button>
+        </div>
+        <p class="mt-4 text-center text-sm">Already have an account? <a href="login.html" class="text-green-600 hover:underline">Log in</a></p>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function register() {
+      const username = document.getElementById("username").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      // Reset error messages
+      document.getElementById("username-error").classList.add("hidden");
+      document.getElementById("email-error").classList.add("hidden");
+      document.getElementById("password-error").classList.add("hidden");
+
+      let isValid = true;
+
+      // Validate username
+      if (username.length < 3) {
+        document.getElementById("username-error").classList.remove("hidden");
+        isValid = false;
+      }
+
+      // Validate email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        document.getElementById("email-error").classList.remove("hidden");
+        isValid = false;
+      }
+
+      // Validate password
+      if (password.length < 6) {
+        document.getElementById("password-error").classList.remove("hidden");
+        isValid = false;
+      }
+
+      if (isValid) {
+        try {
+          // Check if user already exists
+          const users = JSON.parse(localStorage.getItem("greenQuestUsers")) || [];
+          if (users.some(user => user.email === email || user.username === username)) {
+            alert("Username or email already registered.");
+            return;
+          }
+
+          // Save user data
+          users.push({ username, email, password });
+          localStorage.setItem("greenQuestUsers", JSON.stringify(users));
+
+          // Initialize user progress
+          const userProgress = {
+            username,
+            points: 0,
+            achievements: 0,
+            tasksCompleted: 0,
+            taskProgress: [false, false, false, false],
+            tasks: [
+              "Turn off unused devices for a day (50 points)",
+              "Enable power-saving mode on your PC (50 points)",
+              "Unplug chargers when not in use (50 points)",
+              "Plant a virtual tree (100 points)"
+            ],
+            treeCount: 0,
+            trees: []
+          };
+          localStorage.setItem(`techCleaner_${username}`, JSON.stringify(userProgress));
+
+          alert("Registration successful! Redirecting to dashboard...");
+          window.location.href = "tech-cleaner-dashboard.html";
+        } catch (e) {
+          console.error("Error saving user data:", e);
+          alert("Failed to register. Please try again.");
+        }
+      }
+    }
+  </script>
+</body>
+</html>

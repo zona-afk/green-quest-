@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GreenQuest - Eco Treasure Hunt</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-image: url('https://www.transparenttextures.com/patterns/leaf.png');
+      background-color: #e7f3e7;
+    }
+    .treasure-map {
+      background-image: url('https://www.transparenttextures.com/patterns/old-map.png');
+      background-size: cover;
+    }
+  </style>
+</head>
+<body class="text-gray-800">
+  <!-- Navbar -->
+  <nav class="bg-green-800 text-white p-4 shadow-lg">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold flex items-center">
+        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        GreenQuest
+      </h1>
+      <div>
+        <a href="#home" class="mx-2 hover:underline">Home</a>
+        <a href="#dashboard" class="mx-2 hover:underline">Dashboard</a>
+        <a href="#treasure-hunt" class="mx-2 hover:underline">Treasure Hunt</a>
+        <a href="#leaderboard" class="mx-2 hover:underline">Leaderboard</a>
+        <a href="#badges" class="mx-2 hover:underline">Badges</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="py-20 text-center bg-green-200 treasure-map">
+    <div class="container mx-auto">
+      <h2 class="text-4xl font-bold mb-4 text-green-900">Embark on the Eco Treasure Hunt!</h2>
+      <p class="text-lg mb-6 text-gray-700">Discover sustainability treasures by completing eco-friendly tasks and earning coins!</p>
+      <button class="bg-green-700 text-white px-6 py-3 rounded-lg hover:bg-green-800 shadow-md">Start Your Quest</button>
+    </div>
+  </section>
+
+  <!-- Dashboard Section -->
+  <section id="dashboard" class="py-20">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8 text-green-900">Your Explorer Dashboard</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl font-semibold text-green-700">Treasure Coins</h3>
+          <p id="points" class="text-2xl">0</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl font-semibold text-green-700">Badges Earned</h3>
+          <p id="badges" class="text-2xl">0</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl font-semibold text-green-700">Explorer Rank</h3>
+          <p id="rank" class="text-2xl">N/A</p>
+        </div>
+      </div>
+      <div class="mt-8">
+        <h3 class="text-xl font-semibold text-green-900">Your Treasure Map</h3>
+        <canvas id="mapCanvas" class="w-full h-64 bg-green-100 rounded-lg treasure-map"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- Eco Treasure Hunt Section -->
+  <section id="treasure-hunt" class="py-20 bg-green-200 treasure-map">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8 text-green-900">Eco Treasure Hunt</h2>
+      <p class="text-center mb-6 text-gray-700">Complete real-world eco-tasks to uncover treasures and earn coins!</p>
+      <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h3 class="text-xl font-semibold text-green-700">Your Quests</h3>
+        <ul id="task-list" class="space-y-4 mt-4">
+          <li class="flex justify-between items-center">
+            <span>Recycle 5 plastic bottles</span>
+            <button onclick="completeTask(0)" class="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800" aria-label="Mark Recycle Task as Done">Done</button>
+          </li>
+          <li class="flex justify-between items-center">
+            <span>Use a reusable water bottle for a day</span>
+            <button onclick="completeTask(1)" class="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800" aria-label="Mark Reusable Bottle Task as Done">Done</button>
+          </li>
+          <li class="flex justify-between items-center">
+            <span>Walk or bike instead of driving</span>
+            <button onclick="completeTask(2)" class="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800" aria-label="Mark Walk or Bike Task as Done">Done</button>
+          </li>
+        </ul>
+        <button onclick="addNewTask()" class="bg-green-700 text-white px-4 py-2 mt-4 rounded hover:bg-green-800">Add New Quest</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Leaderboard Section -->
+  <section id="leaderboard" class="py-20">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8 text-green-900">Hall of Explorers</h2>
+      <div class="bg-white p-6 rounded-lg shadow-lg">
+        <ul id="leaderboard-list" class="space-y-4">
+          <li class="flex justify-between"><span>1. ForestFinder</span><span>1500 coins</span></li>
+          <li class="flex justify-between"><span>2. EcoVoyager</span><span>1300 coins</span></li>
+          <li class="flex justify-between"><span>3. GreenTrailblazer</span><span>1100 coins</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Badges Section -->
+  <section id="badges" class="py-20 bg-green-200 treasure-map">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8 text-green-900">Explorer Badges</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl font-semibold text-green-700">Recycler’s Crest</h3>
+          <p>Recycle 20 items.</p>
+          <p id="recycler-crest" class="text-gray-500">Locked</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl font-semibold text-green-700">Eco Traveler</h3>
+          <p>Use sustainable transport for 5 days.</p>
+          <p id="eco-traveler" class="text-gray-500">Locked</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl font-semibold text-green-700">Forest Guardian</h3>
+          <p>Plant 10 virtual trees.</p>
+          <p id="forest-guardian" class="text-gray-500">Locked</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- JavaScript for Interactivity -->
+  <script>
+    let points = 0;
+    let badges = 0;
+    let tasksCompleted = 0;
+    let taskProgress = [false, false, false]; // Track task completion
+
+    function updateDashboard() {
+      document.getElementById("points").textContent = points;
+      document.getElementById("badges").textContent = badges;
+      checkBadges();
+      drawMap();
+    }
+
+    function completeTask(index) {
+      if (!taskProgress[index]) {
+        taskProgress[index] = true;
+        const taskList = document.getElementById("task-list").children;
+        taskList[index].querySelector("button").disabled = true;
+        taskList[index].querySelector("span").classList.add("line-through");
+        points += 50;
+        tasksCompleted += 1;
+        if (tasksCompleted >= 3) {
+          badges += 1;
+        }
+        updateDashboard();
+        alert(Quest completed! +50 treasure coins);
+        saveProgress();
+      }
+    }
+
+    function addNewTask() {
+      const task = prompt("Enter a new eco-friendly quest:");
+      if (task) {
+        const taskList = document.getElementById("task-list");
+        const index = taskProgress.length;
+        taskProgress.push(false);
+        const li = document.createElement("li");
+        li.className = "flex justify-between items-center";
+        li.innerHTML = <span>${task}</span><button onclick="completeTask(${index})" class="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800" aria-label="Mark ${task} as Done">Done</button>;
+        taskList.appendChild(li);
+      }
+    }
+
+    function checkBadges() {
+      if (tasksCompleted >= 2) {
+        document.getElementById("recycler-crest").textContent = "Unlocked";
+        badges = Math.max(badges, 1);
+      }
+      if (taskProgress[2]) {
+        document.getElementById("eco-traveler").textContent = "Unlocked";
+        badges = Math.max(badges, 2);
+      }
+      if (points >= 150) {
+        document.getElementById("forest-guardian").textContent = "Unlocked";
+        badges = Math.max(badges, 3);
+      }
+    }
+
+    // Treasure Map Visualization
+    const canvas = document.getElementById("mapCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function drawMap() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Draw map background
+      ctx.fillStyle = "#f4e4bc"; // Parchment color
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Draw paths
+      ctx.strokeStyle = "#8b4513";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(50, canvas.height - 50);
+      ctx.lineTo(canvas.width - 50, 50);
+      ctx.stroke();
+      // Draw treasures (based on tasks completed)
+      const treasurePositions = [
+        { x: 100, y: canvas.height - 100 },
+        { x: 200, y: canvas.height - 150 },
+        { x: 300, y: 100 }
+      ];
+      taskProgress.forEach((completed, i) => {
+        if (completed) {
+          ctx.fillStyle = "#ffd700"; // Gold for treasure
+          ctx.beginPath();
+          ctx.arc(treasurePositions[i].x, treasurePositions[i].y, 10, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      });
+      // Draw player position
+      const progress = tasksCompleted / taskProgress.length;
+      const playerX = 50 + progress * (canvas.width - 100);
+      const playerY = canvas.height - 50 - progress * (canvas.height - 100);
+      ctx.fillStyle = "#16a34a"; // Green for player
+      ctx.beginPath();
+      ctx.arc(playerX, playerY, 15, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    // Data Persistence
+    function saveProgress() {
+      localStorage.setItem("greenQuest", JSON.stringify({ points, badges, tasksCompleted, taskProgress }));
+    }
+
+    function loadProgress() {
+      const data = JSON.parse(localStorage.getItem("greenQuest")) || { points: 0, badges: 0, tasksCompleted: 0, taskProgress: [false, false, false] };
+      points = data.points;
+      badges = data.badges;
+      tasksCompleted = data.tasksCompleted;
+      taskProgress = data.taskProgress;
+      updateDashboard();
+      // Update task UI based on progress
+      const taskList = document.getElementById("task-list").children;
+      taskProgress.forEach((completed, i) => {
+        if (completed && i < taskList.length) {
+          taskList[i].querySelector("button").disabled = true;
+          taskList[i].querySelector("span").classList.add("line-through");
+        }
+      });
+    }
+
+    window.onload = loadProgress;
+
+    // Progress Chart
+    ```chartjs
+    {
+      "type": "line",
+      "data": {
+        "labels": ["Quest 1", "Quest 2", "Quest 3"],
+        "datasets": [{
+          "label": "Treasure Coins Earned",
+          "data": [50, 100, 150],
+          "borderColor": "#16a34a",
+          "backgroundColor": "rgba(22, 163, 74, 0.2)",
+          "fill": true
+        }]
+      },
+      "options": {
+        "responsive": true,
+        "scales": {
+          "y": {
+            "beginAtZero": true
+          }
+        }
+      }
+    }

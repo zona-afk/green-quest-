@@ -1,0 +1,377 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GreenQuest - Eco Treasure Hunt</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    canvas { border: 2px solid #2f855a; }
+    .tree { position: absolute; font-size: 2rem; }
+  </style>
+</head>
+<body class="bg-green-50 text-gray-800">
+  <!-- Navbar -->
+  <nav class="bg-green-600 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Carbon Tracker</h1>
+      <div>
+        <a href="#home" class="mx-2 hover:underline">Home</a>
+        <a href="#dashboard" class="mx-2 hover:underline">Dashboard</a>
+        <a href="#treasure-hunt" class="mx-2 hover:underline">Treasure Hunt</a>
+        <a href="#leaderboard" class="mx-2 hover:underline">Leaderboard</a>
+        <a href="#badges" class="mx-2 hover:underline">Badges</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="py-20 text-center bg-green-100">
+    <div class="container mx-auto">
+      <h2 class="text-4xl font-bold mb-4">Embark on the Eco Treasure Hunt!</h2>
+      <p class="text-lg mb-6">Discover sustainability treasures by completing eco-friendly tasks and earning coins!</p>
+      <button onclick="document.getElementById('treasure-hunt').scrollIntoView({ behavior: 'smooth' })" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 shadow-md">Start Your Quest</button>
+    </div>
+  </section>
+
+  <!-- Dashboard Section -->
+  <section id="dashboard" class="py-20">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Your Explorer Dashboard</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Treasure Coins</h3>
+          <p id="points" class="text-2xl">0</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Badges Earned</h3>
+          <p id="badges" class="text-2xl">0</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Trees Planted</h3>
+          <p id="treeCount" class="text-2xl">0</p>
+        </div>
+      </div>
+      <div class="mt-8">
+        <h3 class="text-xl font-semibold">Your Treasure Map</h3>
+        <canvas id="mapCanvas" width="800" height="400" class="w-full bg-white rounded-lg"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- Eco Treasure Hunt Section -->
+  <section id="treasure-hunt" class="py-20 bg-green-100">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Eco Treasure Hunt</h2>
+      <p class="text-center mb-6">Complete real-world eco-tasks to uncover treasures and earn coins!</p>
+      <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-semibold">Your Quests</h3>
+        <ul id="task-list" class="space-y-4 mt-4">
+          <li class="flex justify-between items-center">
+            <span>Recycle 5 plastic bottles (50 coins)</span>
+            <button onclick="completeTask(0, 50)" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Mark Recycle Task as Done">Done</button>
+          </li>
+          <li class="flex justify-between items-center">
+            <span>Use a reusable water bottle for a day (50 coins)</span>
+            <button onclick="completeTask(1, 50)" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Mark Reusable Bottle Task as Done">Done</button>
+          </li>
+          <li class="flex justify-between items-center">
+            <span>Walk or bike instead of driving (50 coins)</span>
+            <button onclick="completeTask(2, 50)" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Mark Walk or Bike Task as Done">Done</button>
+          </li>
+          <li class="flex justify-between items-center">
+            <span>Plant a virtual tree (100 coins)</span>
+            <button onclick="completeTask(3, 100, true)" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Mark Plant Tree Task as Done">Done</button>
+          </li>
+        </ul>
+        <div class="flex justify-between mt-4">
+          <button onclick="addNewTask()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Add New Quest</button>
+          <button onclick="plantTree()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" disabled id="plantButton">Plant Tree (100 coins)</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Leaderboard Section -->
+  <section id="leaderboard" class="py-20">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Hall of Explorers</h2>
+      <div class="bg-white p-6 rounded-lg shadow">
+        <ul id="leaderboard-list" class="space-y-4">
+          <li class="flex justify-between"><span>1. ForestFinder</span><span>1500 coins</span></li>
+          <li class="flex justify-between"><span>2. EcoVoyager</span><span>1300 coins</span></li>
+          <li class="flex justify-between"><span>3. GreenTrailblazer</span><span>1100 coins</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Badges Section -->
+  <section id="badges" class="py-20 bg-green-100">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Explorer Badges</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Recycler’s Crest</h3>
+          <p>Recycle 20 items.</p>
+          <p id="recycler-crest" class="text-gray-500">Locked</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Eco Traveler</h3>
+          <p>Use sustainable transport for 5 days.</p>
+          <p id="eco-traveler" class="text-gray-500">Locked</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Forest Guardian</h3>
+          <p>Plant 10 virtual trees.</p>
+          <p id="forest-guardian" class="text-gray-500">Locked</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Progress Chart -->
+  ```chartjs
+  {
+    "type": "line",
+    "data": {
+      "labels": ["Quest 1", "Quest 2", "Quest 3", "Quest 4"],
+      "datasets": [{
+        "label": "Treasure Coins Earned",
+        "data": [50, 100, 150, 250],
+        "borderColor": "#16a34a",
+        "backgroundColor": "rgba(22, 163, 74, 0.2)",
+        "fill": true
+      }]
+    },
+    "options": {
+      "responsive": true,
+      "scales": {
+        "y": {
+          "beginAtZero": true
+        }
+      }
+    }
+  }
+  ```
+
+  <script>
+    let points = 0;
+    let badges = 0;
+    let tasksCompleted = 0;
+    let treeCount = 0;
+    let taskProgress = [false, false, false, false];
+    const trees = [];
+
+    function updateDashboard() {
+      document.getElementById("points").textContent = points;
+      document.getElementById("badges").textContent = badges;
+      document.getElementById("treeCount").textContent = treeCount;
+      checkBadges();
+      drawMap();
+      updatePlantButton();
+    }
+
+    function completeTask(index, taskPoints, isTreeTask = false) {
+      if (!taskProgress[index]) {
+        taskProgress[index] = true;
+        const taskList = document.getElementById("task-list").children;
+        taskList[index].querySelector("button").disabled = true;
+        taskList[index].querySelector("button").textContent = "Completed";
+        taskList[index].querySelector("button").classList.remove("bg-green-600", "hover:bg-green-700");
+        taskList[index].querySelector("button").classList.add("bg-gray-400");
+        taskList[index].querySelector("span").classList.add("line-through");
+        points += taskPoints;
+        tasksCompleted += 1;
+        if (isTreeTask) {
+          treeCount += 1;
+          drawTree();
+        }
+        if (tasksCompleted >= 3) {
+          badges = Math.max(badges, 1);
+        }
+        updateDashboard();
+        alert(`Quest completed! +${taskPoints} treasure coins`);
+        saveProgress();
+      }
+    }
+
+    function addNewTask() {
+      const task = prompt("Enter a new eco-friendly quest:");
+      if (task) {
+        const taskList = document.getElementById("task-list");
+        const index = taskProgress.length;
+        taskProgress.push(false);
+        const li = document.createElement("li");
+        li.className = "flex justify-between items-center";
+        li.innerHTML = `<span>${task} (50 coins)</span><button onclick="completeTask(${index}, 50)" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Mark ${task} as Done">Done</button>`;
+        taskList.appendChild(li);
+      }
+    }
+
+    function updatePlantButton() {
+      const plantButton = document.getElementById("plantButton");
+      plantButton.disabled = points < 100 || taskProgress[3];
+      if (!plantButton.disabled) {
+        plantButton.classList.remove("bg-gray-400");
+        plantButton.classList.add("bg-green-600", "hover:bg-green-700");
+      } else {
+        plantButton.classList.remove("bg-green-600", "hover:bg-green-700");
+        plantButton.classList.add("bg-gray-400");
+      }
+    }
+
+    function plantTree() {
+      if (points >= 100 && !taskProgress[3]) {
+        completeTask(3, 100, true);
+      }
+    }
+
+    function checkBadges() {
+      if (tasksCompleted >= 2) {
+        document.getElementById("recycler-crest").textContent = "Unlocked";
+        document.getElementById("recycler-crest").classList.remove("text-gray-500");
+        document.getElementById("recycler-crest").classList.add("text-green-600");
+        badges = Math.max(badges, 1);
+      }
+      if (taskProgress[2]) {
+        document.getElementById("eco-traveler").textContent = "Unlocked";
+        document.getElementById("eco-traveler").classList.remove("text-gray-500");
+        document.getElementById("eco-traveler").classList.add("text-green-600");
+        badges = Math.max(badges, 2);
+      }
+      if (treeCount >= 10) {
+        document.getElementById("forest-guardian").textContent = "Unlocked";
+        document.getElementById("forest-guardian").classList.remove("text-gray-500");
+        document.getElementById("forest-guardian").classList.add("text-green-600");
+        badges = Math.max(badges, 3);
+      }
+      document.getElementById("badges").textContent = badges;
+    }
+
+    const canvas = document.getElementById("mapCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function drawMap() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#2f855a";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(50, canvas.height - 50);
+      ctx.lineTo(canvas.width - 50, 50);
+      ctx.stroke();
+      const treasurePositions = [
+        { x: 100, y: canvas.height - 100 },
+        { x: 200, y: canvas.height - 150 },
+        { x: 300, y: 100 },
+        { x: 400, y: 50 }
+      ];
+      taskProgress.forEach((completed, i) => {
+        if (completed && i < treasurePositions.length) {
+          ctx.fillStyle = "#ffd700";
+          ctx.beginPath();
+          ctx.arc(treasurePositions[i].x, treasurePositions[i].y, 10, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      });
+      const progress = tasksCompleted / taskProgress.length;
+      const playerX = 50 + progress * (canvas.width - 100);
+      const playerY = canvas.height - 50 - progress * (canvas.height - 100);
+      ctx.fillStyle = "#16a34a";
+      ctx.beginPath();
+      ctx.arc(playerX, playerY, 15, 0, 2 * Math.PI);
+      ctx.fill();
+      trees.forEach(tree => {
+        ctx.fillStyle = "#2f855a";
+        ctx.beginPath();
+        ctx.arc(tree.x, tree.y, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#4a3728";
+        ctx.fillRect(tree.x - 5, tree.y + 20, 10, 30);
+      });
+    }
+
+    function drawTree() {
+      const x = Math.random() * (canvas.width - 50) + 25;
+      const y = Math.random() * (canvas.height - 50) + 25;
+      trees.push({ x, y });
+      drawMap();
+    }
+
+    function saveProgress() {
+      localStorage.setItem("greenQuest", JSON.stringify({ points, badges, tasksCompleted, taskProgress, treeCount, trees }));
+    }
+
+    function loadProgress() {
+      const data = JSON.parse(localStorage.getItem("greenQuest")) || {
+        points: 0,
+        badges: 0,
+        tasksCompleted: 0,
+        taskProgress: [false, false, false, false],
+        treeCount: 0,
+        trees: []
+      };
+      points = data.points;
+      badges = data.badges;
+      tasksCompleted = data.tasksCompleted;
+      taskProgress = data.taskProgress;
+      treeCount = data.treeCount;
+      trees.push(...data.trees);
+      updateDashboard();
+      const taskList = document.getElementById("task-list").children;
+      taskProgress.forEach((completed, i) => {
+        if (completed && i < taskList.length) {
+          taskList[i].querySelector("button").disabled = true;
+          taskList[i].querySelector("button").textContent = "Completed";
+          taskList[i].querySelector("button").classList.remove("bg-green-600", "hover:bg-green-700");
+          taskList[i].querySelector("button").classList.add("bg-gray-400");
+          taskList[i].querySelector("span").classList.add("line-through");
+        }
+      });
+    }
+
+    window.onload = loadProgress;
+  </script>
+</body>
+</html>

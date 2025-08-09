@@ -1,0 +1,332 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GreenQuest - Sustainability Through Gamification</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-green-50 text-gray-800">
+  <!-- Navbar -->
+  <nav class="bg-green-600 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">GreenQuest</h1>
+      <div>
+        <a href="#home" class="mx-2 hover:underline">Home</a>
+        <a href="#dashboard" class="mx-2 hover:underline">Dashboard</a>
+        <a href="#challenges" class="mx-2 hover:underline">Challenges</a>
+        <a href="#leaderboard" class="mx-2 hover:underline">Leaderboard</a>
+        <a href="#achievements" class="mx-2 hover:underline">Achievements</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="py-20 text-center bg-green-100">
+    <div class="container mx-auto">
+      <h2 class="text-4xl font-bold mb-4">Make Sustainability Fun!</h2>
+      <p class="text-lg mb-6">Earn points, climb leaderboards, and unlock achievements by adopting eco-friendly habits.</p>
+      <button class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">Get Started</button>
+    </div>
+  </section>
+
+  <!-- Dashboard Section -->
+  <section id="dashboard" class="py-20">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Your Eco Dashboard</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Points</h3>
+          <p id="points" class="text-2xl">0</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Achievements</h3>
+          <p id="achievements" class="text-2xl">0</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Rank</h3>
+          <p id="rank" class="text-2xl">N/A</p>
+        </div>
+      </div>
+      <div class="mt-8">
+        <h3 class="text-xl font-semibold">Your Forest</h3>
+        <canvas id="forestCanvas" class="w-full h-48 bg-green-200 rounded-lg"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- Challenges Section -->
+  <section id="challenges" class="py-20 bg-green-100">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Eco Challenges</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Eco Trivia Challenge</h3>
+          <p>Test your sustainability knowledge!</p>
+          <button onclick="startTrivia()" class="bg-green-600 text-white px-4 py-2 mt-4 rounded hover:bg-green-700">Play Now</button>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Recycle Sort</h3>
+          <p>Sort items into the correct bins.</p>
+          <button onclick="startRecycleSort()" class="bg-green-600 text-white px-4 py-2 mt-4 rounded hover:bg-green-700">Play Now</button>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Carbon Footprint Tracker</h3>
+          <p>Track and reduce your carbon footprint.</p>
+          <button class="bg-green-600 text-white px-4 py-2 mt-4 rounded hover:bg-green-700">Start Tracking</button>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Virtual Tree Planting</h3>
+          <p>Plant trees by completing eco-tasks.</p>
+          <button class="bg-green-600 text-white px-4 py-2 mt-4 rounded hover:bg-green-700">Plant Now</button>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Tech Cleaner</h3>
+          <p>Optimize your tech habits for energy efficiency.</p>
+          <button onclick="startTechCleaner()" class="bg-green-600 text-white px-4 py-2 mt-4 rounded hover:bg-green-700">Clean Now</button>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Eco Treasure Hunt</h3>
+          <p>Complete real-world eco-tasks to unlock treasures.</p>
+          <button onclick="showTreasureHunt()" class="bg-green-600 text-white px-4 py-2 mt-4 rounded hover:bg-green-700">Start Hunt</button>
+          <div id="treasure-hunt-tasks" class="hidden mt-4">
+            <ul id="task-list" class="space-y-2">
+              <li><span>Recycle a plastic bottle</span> <button onclick="completeTask(0)" class="bg-blue-500 text-white px-2 py-1 rounded">Done</button></li>
+              <li><span>Use reusable bags</span> <button onclick="completeTask(1)" class="bg-blue-500 text-white px-2 py-1 rounded">Done</button></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Leaderboard Section -->
+  <section id="leaderboard" class="py-20">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Leaderboard</h2>
+      <div class="bg-white p-6 rounded-lg shadow">
+        <ul id="leaderboard-list" class="space-y-4">
+          <li class="flex justify-between"><span>1. EcoWarrior</span><span>1200 points</span></li>
+          <li class="flex justify-between"><span>2. GreenGuru</span><span>1100 points</span></li>
+          <li class="flex justify-between"><span>3. PlanetSaver</span><span>1000 points</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Achievements Section -->
+  <section id="achievements" class="py-20 bg-green-100">
+    <div class="container mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">Achievements</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Carbon Cutter</h3>
+          <p>Reduce your carbon footprint by 10kg.</p>
+          <p class="text-gray-500">Locked</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Recycle Master</h3>
+          <p>Sort 100 items correctly.</p>
+          <p class="text-gray-500">Locked</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold">Tech Wizard</h3>
+          <p>Complete 10 Tech Cleaner scenarios.</p>
+          <p class="text-gray-500">Locked</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- JavaScript for Interactivity -->
+  <script>
+    let points = 0;
+    let achievements = 0;
+    let tasksCompleted = 0;
+
+    function updateDashboard() {
+      document.getElementById("points").textContent = points;
+      document.getElementById("achievements").textContent = achievements;
+    }
+
+    function startTrivia() {
+      const questions = [
+        { q: "Which material is most recyclable?", a: ["Glass", "Plastic", "Paper", "Aluminum"], correct: 0 },
+        { q: "What is the largest source of greenhouse gas emissions?", a: ["Transportation", "Agriculture", "Industry", "Buildings"], correct: 2 }
+      ];
+      let score = 0;
+      let current = 0;
+
+      function showQuestion() {
+        if (current < questions.length) {
+          let result = prompt(questions[current].q + "\n" + questions[current].a.map((a, i) => `${i + 1}. ${a}`).join("\n"));
+          if (result == questions[current].correct + 1) {
+            score += 10;
+            points += 10;
+            updateDashboard();
+            if (score >= 20) {
+              achievements += 1;
+              updateDashboard();
+            }
+            alert("Correct! +10 points");
+          } else {
+            alert("Incorrect. Try again!");
+          }
+          current++;
+          showQuestion();
+        } else {
+          alert(`Trivia complete! You scored ${score} points.`);
+        }
+      }
+      showQuestion();
+    }
+
+    function startTechCleaner() {
+      const scenarios = [
+        { q: "Your laptop is on sleep mode overnight. What should you do?", a: ["Shut it down", "Keep it on", "Unplug it", "Restart it"], correct: 0 },
+        { q: "You have multiple chargers plugged in. Best action?", a: ["Leave them plugged", "Unplug unused chargers", "Use them all", "Buy new ones"], correct: 1 }
+      ];
+      let score = 0;
+      let current = 0;
+
+      function showScenario() {
+        if (current < scenarios.length) {
+          let result = prompt(scenarios[current].q + "\n" + scenarios[current].a.map((a, i) => `${i + 1}. ${a}`).join("\n"));
+          if (result == scenarios[current].correct + 1) {
+            score += 15;
+            points += 15;
+            updateDashboard();
+            if (score >= 30) {
+              achievements += 1;
+              updateDashboard();
+            }
+            alert("Correct! +15 points");
+          } else {
+            alert("Incorrect. Try again!");
+          }
+          current++;
+          showScenario();
+        } else {
+          alert(`Tech Cleaner complete! You scored ${score} points.`);
+        }
+      }
+      showScenario();
+    }
+
+    function showTreasureHunt() {
+      document.getElementById("treasure-hunt-tasks").classList.toggle("hidden");
+    }
+
+    function completeTask(index) {
+      const taskList = document.getElementById("task-list").children;
+      taskList[index].querySelector("button").disabled = true;
+      taskList[index].querySelector("span").classList.add("line-through");
+      points += 50;
+      tasksCompleted += 1;
+      if (tasksCompleted >= 2) {
+        achievements += 1;
+      }
+      updateDashboard();
+      alert("Task completed! +50 points");
+    }
+
+    // Recycle Sort Challenge
+    function startRecycleSort() {
+      const recycleItems = [
+        { item: "Plastic Bottle", correct: "plastic", emoji: "🍼" },
+        { item: "Newspaper", correct: "paper", emoji: "📰" },
+        { item: "Glass Jar", correct: "glass", emoji: "🫙" },
+        { item: "Pizza Box", correct: "trash", emoji: "🍕" },
+        { item: "Aluminum Can", correct: "plastic", emoji: "🥫" },
+        { item: "Cardboard", correct: "paper", emoji: "📦" },
+        { item: "Wine Bottle", correct: "glass", emoji: "🍷" },
+        { item: "Styrofoam Cup", correct: "trash", emoji: "☕" }
+      ];
+      
+      let currentIndex = 0;
+      let gameScore = 0;
+      
+      function showNextItem() {
+        if (currentIndex >= recycleItems.length) {
+          alert(`🎉 Recycle Sort Complete!\nFinal Score: ${gameScore} points`);
+          points += gameScore;
+          updateDashboard();
+          return;
+        }
+        
+        const current = recycleItems[currentIndex];
+        const choices = ["plastic", "paper", "glass", "trash"];
+        
+        let promptText = `♻️ Sort this item: ${current.emoji} ${current.item}\n\n`;
+        choices.forEach((choice, index) => {
+          promptText += `${index + 1}. ${choice.charAt(0).toUpperCase() + choice.slice(1)} Bin\n`;
+        });
+        
+        const answer = prompt(promptText);
+        const selectedIndex = parseInt(answer) - 1;
+        
+        if (selectedIndex >= 0 && selectedIndex < choices.length) {
+          const selected = choices[selectedIndex];
+          
+          if (selected === current.correct) {
+            gameScore += 10;
+            alert(`✅ Correct! +10 points\nScore: ${gameScore}`);
+          } else {
+            alert(`❌ Incorrect! The correct bin is: ${current.correct}\nScore: ${gameScore}`);
+          }
+          
+          currentIndex++;
+          showNextItem();
+        }
+      }
+      
+      showNextItem();
+    }
+
+    // Placeholder for forest canvas (Virtual Tree Planting visualization)
+    const canvas = document.getElementById("forestCanvas");
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "green";
+    ctx.fillRect(50, 50, 20, 50); // Sample tree
+  </script>
+</body>
+</html>
